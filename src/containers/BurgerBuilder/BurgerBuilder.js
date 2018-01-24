@@ -21,10 +21,21 @@ class BurgerBuilder extends Component {
                 cheese: 0,
                 meat: 0,
             },
-            totalPrice: 4,
+            totalPrice: 0,
+            purchaseable: false,
         };
         
         this.addIngredientsHandler = this.addIngredientsHandler.bind(this);
+        this.removeIngredientsHandler = this.removeIngredientsHandler.bind(this);
+        this.updatePurchaseState = this.updatePurchaseState.bind(this);
+    }
+
+    updatePurchaseState(ingredients) {
+        const sum = Object.keys(ingredients)
+            .map(igKey => ingredients[igKey])
+            .reduce((sum, el) => sum + el, 0);
+
+        this.setState({purchaseable: sum > 0});    
     }
 
     addIngredientsHandler (type) {
@@ -41,19 +52,52 @@ class BurgerBuilder extends Component {
         this.setState({
             totalPrice: newPrice,
             ingredients: updatedIngredients,
-        })
+        });
+        
+        this.updatePurchaseState(updatedIngredients);
     }
 
     removeIngredientsHandler (type) {
+        const oldCount = this.state.ingredients[type];
+        if (oldCount <= 0) {
+            return;
+        } 
 
+        const updateCount = oldCount - 1;
+        const updatedIngredients = {
+            ...this.state.ingredients,
+            [type]: updateCount,
+        };
+        const priceDeduction = INGREDIENTS_PRICES[type];
+        const oldPrice = this.state.totalPrice;
+        const newPrice = oldPrice - priceDeduction;
+
+        this.setState({
+            totalPrice: newPrice,
+            ingredients: updatedIngredients,
+        });
+
+        this.updatePurchaseState(updatedIngredients);
     }
 
     render () {
+        const disableInfo = {
+            ...this.state.ingredients,
+        };
+        for (let key in disableInfo) {
+            disableInfo[key] = disableInfo[key] <= 0;
+        }
+        
         return (
             <Aux>
                 <Burger ingredients={this.state.ingredients}/>
                 <BuildControls 
-                    ingredientAdded={this.addIngredientsHandler} />
+                    ingredientAdded={this.addIngredientsHandler}
+                    ingredientRemoved={this.removeIngredientsHandler} 
+                    disabled={disableInfo}
+                    purchaseable={this.state.purchaseable}
+                    price={this.state.totalPrice}
+                />
             </Aux>
         );
     }
